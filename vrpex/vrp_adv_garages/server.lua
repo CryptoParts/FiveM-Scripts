@@ -1,23 +1,3 @@
---[[
-    FiveM Scripts
-    Copyright C 2018  Sighmir
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published
-    by the Free Software Foundation, either version 3 of the License, or
-    at your option any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-]]
-
--- vRP TUNNEL/PROXY
-MySQL = module("vrp_mysql", "MySQL")
 local Tunnel = module("vrp", "lib/Tunnel")
 local Proxy = module("vrp", "lib/Proxy")
 vRP = Proxy.getInterface("vRP")
@@ -30,7 +10,7 @@ Proxy.addInterface("vrp_adv_garages",vRPg)
 Gclient = Tunnel.getInterface("vrp_adv_garages")
 
 -- MYSQL
-MySQL.createCommand("vRP/move_vehicle","UPDATE vrp_user_vehicles SET user_id = @tuser_id WHERE user_id = @user_id AND vehicle = @vehicle")
+vRP._prepare("vRP/move_vehicle","UPDATE vrp_user_vehicles SET user_id = @tuser_id WHERE user_id = @user_id AND vehicle = @vehicle")
 
 -- CFG
 local cfg = module("vrp_adv_garages", "cfg/garages")
@@ -109,7 +89,7 @@ function vRPg.openGarage(source, gid, pos)
 					  local name, custom = Gclient.getVehicleMods(source, veh_type)
 			          -- print("custom:u"..user_id.."veh_"..vname.." = " .. json.encode(custom)) -- uncomment to see data structure upon save
 			          vRP.setSData("custom:u"..user_id.."veh_"..vname, json.encode(custom))
-					  MySQL.execute("vRP/add_vehicle", {user_id = user_id, vehicle = vname})
+					  vRP.execute("vRP/add_vehicle", {user_id = user_id, vehicle = vname})
 				      Gclient.despawnShowroomVehicle(source) 
 					  if Gclient.spawnGarageVehicle(source,veh_type,vname,pos) then
 					  	Gclient.setVehicleMods(source,custom)
@@ -140,7 +120,7 @@ function vRPg.openGarage(source, gid, pos)
           end
           
           -- get player owned vehicles (indexed by vehicle type name in lower case)
-          local _pvehicles = MySQL.query("vRP/get_vehicles", {user_id = user_id})
+          local _pvehicles = vRP.query("vRP/get_vehicles", {user_id = user_id})
           local pvehicles = {}
           for k,v in pairs(_pvehicles) do
             pvehicles[string.lower(v.vehicle)] = true
@@ -181,7 +161,7 @@ function vRPg.openGarage(source, gid, pos)
           end
           
           -- get player owned vehicles
-          local pvehicles = MySQL.query("vRP/get_vehicles", {user_id = user_id})
+          local pvehicles = vRP.query("vRP/get_vehicles", {user_id = user_id})
           -- add rents to whitelist
           for k,v in pairs(tmpdata.rent_vehicles) do
             if v then -- check true, prevent future neolua issues
@@ -263,7 +243,7 @@ function vRPg.openGarage(source, gid, pos)
                     payment = vRP.tryPayment(user_id,price)
 				  end
 				  if payment then
-                    MySQL.execute("vRP/add_vehicle", {user_id = user_id, vehicle = vname})
+                    vRP.execute("vRP/add_vehicle", {user_id = user_id, vehicle = vname})
                     -- spawn vehicle
                     if not Gclient.spawnGarageVehicle(source,veh_type,vname,pos) then
 			          vRPclient.notify(source,lang.garage.personal.out())
@@ -286,7 +266,7 @@ function vRPg.openGarage(source, gid, pos)
           end
           
           -- get player owned vehicles (indexed by vehicle type name in lower case)
-          local _pvehicles = MySQL.query("vRP/get_vehicles", {user_id = user_id})
+          local _pvehicles = vRP.query("vRP/get_vehicles", {user_id = user_id})
           local pvehicles = {}
           for k,v in pairs(_pvehicles) do
             pvehicles[string.lower(v.vehicle)] = true
@@ -326,7 +306,7 @@ function vRPg.openGarage(source, gid, pos)
               -- sell vehicle
               local vehicle = vehicles[vname]
               if vehicle then      
-                local rows = MySQL.query("vRP/get_vehicle", {user_id = user_id, vehicle = vname})
+                local rows = vRP.query("vRP/get_vehicle", {user_id = user_id, vehicle = vname})
                 if #rows > 0 then -- has vehicle
 				  local price = math.ceil(vehicle[2]*cfg.sell_factor)
 				  local item = vehicle[4]
@@ -337,7 +317,7 @@ function vRPg.openGarage(source, gid, pos)
 				  elseif gpay == "wallet" then
                     vRP.giveMoney(user_id,price)
 				  end
-                  MySQL.execute("vRP/remove_vehicle", {user_id = user_id, vehicle = vname})
+                  vRP.execute("vRP/remove_vehicle", {user_id = user_id, vehicle = vname})
                   vRP.setSData("custom:u"..user_id.."veh_"..vname, json.encode())
 				  
 			      if not item and price > 0 then
@@ -360,7 +340,7 @@ function vRPg.openGarage(source, gid, pos)
           end
           
           -- get player owned vehicles (indexed by vehicle type name in lower case)
-          local _pvehicles = MySQL.query("vRP/get_vehicles", {user_id = user_id})
+          local _pvehicles = vRP.query("vRP/get_vehicles", {user_id = user_id})
           local pvehicles = {}
           for k,v in pairs(_pvehicles) do
             pvehicles[string.lower(v.vehicle)] = true
@@ -440,7 +420,7 @@ function vRPg.openGarage(source, gid, pos)
           end
           
           -- get player owned vehicles (indexed by vehicle type name in lower case)
-          local _pvehicles = MySQL.query("vRP/get_vehicles", {user_id = user_id})
+          local _pvehicles = vRP.query("vRP/get_vehicles", {user_id = user_id})
           local pvehicles = {}
           for k,v in pairs(_pvehicles) do
             pvehicles[string.lower(v.vehicle)] = true
@@ -929,13 +909,13 @@ local function ch_vehicle(player,choice)
     		local nplayer = vRPclient.getNearestPlayer(player, 5)
     		if nplayer then
     		  local tuser_id = vRP.getUserId(nplayer)
-			  local owned = MySQL.query("vRP/get_vehicle", {user_id = tuser_id, vehicle = vname})
+			  local owned = vRP.query("vRP/get_vehicle", {user_id = tuser_id, vehicle = vname})
 			  if #owned == 0 then
     	        local price = tonumber(sanitizeString(vRP.prompt(player,lang.garage.keys.sell.prompt(),""),"\"[]{}+=?!_()#@%/\\|,.",false))
     		    local ok = vRP.request(nplayer, lang.garage.keys.sell.request({vehicle,price}), 30)
     		    if ok then
     		      if vRP.tryFullPayment(tuser_id,price) then
-    			    MySQL.execute("vRP/move_vehicle", {user_id = user_id, tuser_id = tuser_id, vehicle = vname})
+    			    vRP.execute("vRP/move_vehicle", {user_id = user_id, tuser_id = tuser_id, vehicle = vname})
     			    local data = vRP.getSData("custom:u"..user_id.."veh_"..vname)
     			    local custom = json.decode(data)
     			    vRP.setSData("custom:u"..tuser_id.."veh_"..vname, json.encode(custom))
@@ -980,7 +960,7 @@ local function ch_vehicle(player,choice)
           vRP.openMenu(player,subsubmenu)
         end
          -- get player owned vehicles (indexed by vehicle type name in lower case)
-        local pvehicles = MySQL.query("vRP/get_vehicles", {user_id = user_id})
+        local pvehicles = vRP.query("vRP/get_vehicles", {user_id = user_id})
     	for k,v in pairs(pvehicles) do
 		  local vehicle
 		  for x,garage in pairs(adv_garages) do
